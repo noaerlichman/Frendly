@@ -1,0 +1,10 @@
+# .gitignore
+node_modules/
+.env
+dist/
+coverage/
+.DS_Store
+# .gitignore
+node_modules/
+build/
+.DS_Store
