@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../utils/api';
 import FriendsList from '../components/FriendsList';
+import Chat from '../components/Chat';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -26,8 +27,6 @@ const Dashboard = () => {
   const [showChatMenu, setShowChatMenu] = useState(false);
   const [friends, setFriends] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
-  const [chatMessage, setChatMessage] = useState('');
-  const [chatMessages, setChatMessages] = useState([]);
 
   // Add styles for the Groups section
   const styles = {
@@ -237,110 +236,6 @@ const Dashboard = () => {
     declineButton: {
       backgroundColor: '#f44336',
       color: 'white'
-    }
-  };
-
-  // Add chat window styles
-  const chatWindowStyles = {
-    container: {
-      position: 'fixed',
-      bottom: '20px',
-      right: '20px',
-      width: '350px',
-      height: '500px',
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 1000
-    },
-    header: {
-      padding: '15px',
-      borderBottom: '1px solid #dddfe2',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      backgroundColor: '#1877f2',
-      color: 'white',
-      borderRadius: '12px 12px 0 0'
-    },
-    avatar: {
-      width: '40px',
-      height: '40px',
-      borderRadius: '50%',
-      overflow: 'hidden',
-      backgroundColor: '#e4e6eb'
-    },
-    headerInfo: {
-      flex: 1
-    },
-    name: {
-      fontWeight: '600',
-      fontSize: '16px'
-    },
-    closeButton: {
-      background: 'none',
-      border: 'none',
-      color: 'white',
-      cursor: 'pointer',
-      fontSize: '20px',
-      padding: '5px'
-    },
-    messagesContainer: {
-      flex: 1,
-      padding: '15px',
-      overflowY: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '10px',
-      backgroundColor: '#f0f2f5'
-    },
-    message: {
-      maxWidth: '80%',
-      padding: '8px 12px',
-      borderRadius: '18px',
-      fontSize: '14px',
-      lineHeight: '1.4'
-    },
-    sentMessage: {
-      alignSelf: 'flex-end',
-      backgroundColor: '#1877f2',
-      color: 'white'
-    },
-    receivedMessage: {
-      alignSelf: 'flex-start',
-      backgroundColor: 'white',
-      color: '#1c1e21'
-    },
-    inputContainer: {
-      padding: '15px',
-      borderTop: '1px solid #dddfe2',
-      display: 'flex',
-      gap: '10px',
-      backgroundColor: 'white',
-      borderRadius: '0 0 12px 12px'
-    },
-    input: {
-      flex: 1,
-      padding: '8px 12px',
-      borderRadius: '20px',
-      border: '1px solid #dddfe2',
-      fontSize: '14px',
-      outline: 'none'
-    },
-    sendButton: {
-      backgroundColor: '#1877f2',
-      color: 'white',
-      border: 'none',
-      borderRadius: '50%',
-      width: '36px',
-      height: '36px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      fontSize: '16px'
     }
   };
 
@@ -893,49 +788,11 @@ const Dashboard = () => {
     }
   };
 
-  // Function to handle sending a message
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!chatMessage.trim()) return;
-
-    const newMessage = {
-      id: Date.now(),
-      text: chatMessage,
-      senderId: userId,
-      timestamp: new Date().toISOString()
-    };
-
-    setChatMessages([...chatMessages, newMessage]);
-    setChatMessage('');
-
-    // TODO: Send message to backend
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authService.getToken()}`
-        },
-        body: JSON.stringify({
-          receiverId: selectedChat.uid,
-          text: chatMessage
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-    } catch (err) {
-      console.error('Error sending message:', err);
-    }
-  };
-
-  // Update the friend click handler in the chat menu
-  const handleFriendClick = (friend) => {
+  // Update the friend click handler
+  const handleFriendClick = async (friend) => {
+    console.log('Friend clicked:', friend);
     setSelectedChat(friend);
     setShowChatMenu(false);
-    // TODO: Fetch chat history
-    setChatMessages([]);
   };
 
   if (loading) {
@@ -1365,73 +1222,13 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Add chat window */}
+      {/* Replace chat window with Chat component */}
       {selectedChat && (
-        <div style={chatWindowStyles.container}>
-          <div style={chatWindowStyles.header}>
-            <div style={chatWindowStyles.avatar}>
-              {selectedChat.profilePicture ? (
-                <img 
-                  src={selectedChat.profilePicture} 
-                  alt={selectedChat.fullName}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  color: '#1c1e21'
-                }}>
-                  {selectedChat.fullName.charAt(0)}
-                </div>
-              )}
-            </div>
-            <div style={chatWindowStyles.headerInfo}>
-              <div style={chatWindowStyles.name}>{selectedChat.fullName}</div>
-            </div>
-            <button 
-              style={chatWindowStyles.closeButton}
-              onClick={() => setSelectedChat(null)}
-            >
-              ×
-            </button>
-          </div>
-          
-          <div style={chatWindowStyles.messagesContainer}>
-            {chatMessages.map(message => (
-              <div
-                key={message.id}
-                style={{
-                  ...chatWindowStyles.message,
-                  ...(message.senderId === userId 
-                    ? chatWindowStyles.sentMessage 
-                    : chatWindowStyles.receivedMessage
-                  )
-                }}
-              >
-                {message.text}
-              </div>
-            ))}
-          </div>
-          
-          <form onSubmit={handleSendMessage} style={chatWindowStyles.inputContainer}>
-            <input
-              type="text"
-              value={chatMessage}
-              onChange={(e) => setChatMessage(e.target.value)}
-              placeholder="Type a message..."
-              style={chatWindowStyles.input}
-            />
-            <button type="submit" style={chatWindowStyles.sendButton}>
-              ➤
-            </button>
-          </form>
-        </div>
+        <Chat
+          userId={userId}
+          selectedChat={selectedChat}
+          onClose={() => setSelectedChat(null)}
+        />
       )}
     </div>
   );
