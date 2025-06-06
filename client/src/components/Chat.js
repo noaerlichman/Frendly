@@ -39,25 +39,10 @@ const Chat = ({ userId, selectedChat, onClose }) => {
         console.log('Socket disconnected:', reason);
       });
 
-      // Listen for all messages
-      socketRef.current.on('message', (message) => {
-        console.log('Received message event:', message);
-        handleNewMessage(message);
-      });
-
-      // Also listen for newMessage event
+      // Listen for new messages
       socketRef.current.on('newMessage', (message) => {
-        console.log('Received newMessage event:', message);
+        console.log('Received new message:', message);
         handleNewMessage(message);
-      });
-
-      // Listen for chat room events
-      socketRef.current.on('joinedChat', (data) => {
-        console.log('Joined chat room:', data);
-      });
-
-      socketRef.current.on('error', (error) => {
-        console.error('Socket error:', error);
       });
 
       return () => {
@@ -159,7 +144,7 @@ const Chat = ({ userId, selectedChat, onClose }) => {
           senderId: userId,
           receiverId: selectedChat.uid,
           text: chatMessage,
-          chatId: selectedChat.chatId
+          chatId: [userId, selectedChat.uid].sort().join('_')
         })
       });
 
@@ -178,7 +163,7 @@ const Chat = ({ userId, selectedChat, onClose }) => {
       if (socketRef.current) {
         const messageToSend = {
           ...data.chatMessage,
-          chatId: selectedChat.chatId,
+          chatId: [userId, selectedChat.uid].sort().join('_'),
           receiverId: selectedChat.uid,
           senderId: userId
         };
