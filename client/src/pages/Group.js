@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { authService } from '../utils/api';
+import GroupStats from '../components/GroupStats';
 
 const Group = () => {
   const { groupId } = useParams();
@@ -693,6 +694,8 @@ const Group = () => {
           <p style={styles.description}>{group.description}</p>
         )}
       </div>
+
+      <GroupStats groupId={groupId} isAdmin={isAdmin} />
 
       <div style={styles.membersSection}>
         <h2 style={styles.membersTitle}>Members ({members.length})</h2>
