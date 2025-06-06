@@ -694,11 +694,25 @@ export const getGroupStats = async (req: Request, res: Response) => {
       memberPostCounts.set(memberId, 0);
     }
 
-    // Count posts
+    // Initialize hourly activity array
+    const hourlyActivity = Array.from({ length: 24 }, (_, i) => ({
+      hour: i,
+      label: `${i}:00`,
+      count: 0
+    }));
+
+    // Count posts and track hourly activity
     postsSnapshot.forEach((doc) => {
       const postData = doc.data();
       const currentCount = memberPostCounts.get(postData.userId) || 0;
       memberPostCounts.set(postData.userId, currentCount + 1);
+
+      // Track hourly activity
+      if (postData.createdAt) {
+        const postDate = postData.createdAt.toDate();
+        const hour = postDate.getHours();
+        hourlyActivity[hour].count++;
+      }
     });
 
     // Get member names
@@ -725,6 +739,7 @@ export const getGroupStats = async (req: Request, res: Response) => {
     res.status(200).json({
       stats: {
         memberActivity,
+        hourlyActivity,
         totalPosts: postsSnapshot.size,
         totalMembers: groupData.members.length
       }

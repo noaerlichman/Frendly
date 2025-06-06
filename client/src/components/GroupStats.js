@@ -7,6 +7,7 @@ const GroupStats = ({ groupId, isAdmin }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const svgRef = useRef();
+  const hourlySvgRef = useRef();
 
   const styles = {
     container: {
@@ -31,6 +32,9 @@ const GroupStats = ({ groupId, isAdmin }) => {
       color: '#dc3545',
       textAlign: 'center',
       padding: '20px'
+    },
+    chartContainer: {
+      marginBottom: '40px'
     }
   };
 
@@ -63,6 +67,7 @@ const GroupStats = ({ groupId, isAdmin }) => {
         }
 
         const data = await response.json();
+        console.log('Received stats data:', data.stats);
         setStats(data.stats);
       } catch (err) {
         console.error('Error fetching group stats:', err);
@@ -163,6 +168,105 @@ const GroupStats = ({ groupId, isAdmin }) => {
 
   }, [stats]);
 
+  // New useEffect for hourly activity line chart
+  useEffect(() => {
+    if (!stats || !hourlySvgRef.current || !stats.hourlyActivity) return;
+
+    // Clear previous SVG content
+    d3.select(hourlySvgRef.current).selectAll("*").remove();
+
+    // Set up dimensions
+    const margin = { top: 60, right: 20, bottom: 100, left: 60 };
+    const width = 600 - margin.left - margin.right;
+    const height = 400 - margin.top - margin.bottom;
+
+    // Create SVG
+    const svg = d3.select(hourlySvgRef.current)
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom + 20);
+
+    const g = svg.append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Create scales
+    const x = d3.scaleBand()
+      .domain(stats.hourlyActivity.map(d => d.label))
+      .range([0, width])
+      .padding(0.1);
+
+    const y = d3.scaleLinear()
+      .domain([0, d3.max(stats.hourlyActivity, d => d.count)])
+      .range([height, 0])
+      .nice();
+
+    // Create line generator
+    const line = d3.line()
+      .x(d => x(d.label) + x.bandwidth() / 2)
+      .y(d => y(d.count))
+      .curve(d3.curveMonotoneX);
+
+    // Add X axis
+    g.append('g')
+      .attr('transform', `translate(0,${height})`)
+      .call(d3.axisBottom(x))
+      .selectAll('text')
+      .attr('transform', 'rotate(-45)')
+      .style('text-anchor', 'end')
+      .attr('dx', '-.8em')
+      .attr('dy', '.15em')
+      .style('font-size', '12px');
+
+    // Add Y axis with consistent integer ticks
+    const maxCount = d3.max(stats.hourlyActivity, d => d.count);
+    const tickCount = maxCount + 1;
+    g.append('g')
+      .call(d3.axisLeft(y)
+        .ticks(tickCount)
+        .tickFormat(d3.format('d'))
+        .tickValues(d3.range(0, maxCount + 1)));
+
+    // Add the line path
+    g.append('path')
+      .datum(stats.hourlyActivity)
+      .attr('fill', 'none')
+      .attr('stroke', '#1877f2')
+      .attr('stroke-width', 2)
+      .attr('d', line);
+
+    // Add dots
+    g.selectAll('.dot')
+      .data(stats.hourlyActivity)
+      .enter()
+      .append('circle')
+      .attr('class', 'dot')
+      .attr('cx', d => x(d.label) + x.bandwidth() / 2)
+      .attr('cy', d => y(d.count))
+      .attr('r', 4)
+      .attr('fill', '#1877f2');
+
+    // Add value labels
+    g.selectAll('.value-label')
+      .data(stats.hourlyActivity)
+      .enter()
+      .append('text')
+      .attr('class', 'value-label')
+      .attr('x', d => x(d.label) + x.bandwidth() / 2)
+      .attr('y', d => y(d.count) - 15)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '12px')
+      .text(d => d.count);
+
+    // Add title
+    g.append('text')
+      .attr('x', width / 2)
+      .attr('y', -30)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '16px')
+      .style('font-weight', 'bold')
+      .text('Most Active Hours');
+
+  }, [stats]);
+
   if (!isAdmin) {
     return null;
   }
@@ -178,7 +282,14 @@ const GroupStats = ({ groupId, isAdmin }) => {
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Group Statistics</h2>
-      <svg ref={svgRef}></svg>
+      <div style={styles.chartContainer}>
+        <svg ref={svgRef}></svg>
+      </div>
+      {stats.hourlyActivity && (
+        <div style={styles.chartContainer}>
+          <svg ref={hourlySvgRef}></svg>
+        </div>
+      )}
     </div>
   );
 };
