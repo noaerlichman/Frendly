@@ -655,4 +655,82 @@ export const rejectGroupRequest = async (req: Request, res: Response) => {
     console.error('Error rejecting group request:', error);
     res.status(500).json({ message: 'Failed to reject group request' });
   }
+};
+
+export const getGroupStats = async (req: Request, res: Response) => {
+  try {
+    const { groupId } = req.params;
+    const { userId } = req.query;
+
+    if (!groupId || !userId) {
+      return res.status(400).json({ message: 'Group ID and user ID are required' });
+    }
+
+    // Get the group document
+    const groupRef = doc(db, 'Groups', groupId);
+    const groupDoc = await getDoc(groupRef);
+
+    if (!groupDoc.exists()) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const groupData = groupDoc.data() as Group;
+
+    // Check if user is admin
+    if (groupData.adminId !== userId) {
+      return res.status(403).json({ message: 'Only group admin can view statistics' });
+    }
+
+    // Get all posts for the group
+    const postsRef = collection(db, 'Groups', groupId, 'Posts');
+    const postsSnapshot = await getDocs(postsRef);
+
+    // Count posts per member
+    const memberPostCounts = new Map<string, number>();
+    const memberNames = new Map<string, string>();
+
+    // Initialize counts for all members
+    for (const memberId of groupData.members) {
+      memberPostCounts.set(memberId, 0);
+    }
+
+    // Count posts
+    postsSnapshot.forEach((doc) => {
+      const postData = doc.data();
+      const currentCount = memberPostCounts.get(postData.userId) || 0;
+      memberPostCounts.set(postData.userId, currentCount + 1);
+    });
+
+    // Get member names
+    const memberPromises = groupData.members.map(async (memberId) => {
+      const userRef = doc(db, 'Users', memberId);
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        memberNames.set(memberId, userDoc.data().fullName);
+      }
+    });
+
+    await Promise.all(memberPromises);
+
+    // Format data for response
+    const memberActivity = Array.from(memberPostCounts.entries()).map(([memberId, postCount]) => ({
+      memberId,
+      memberName: memberNames.get(memberId) || 'Unknown User',
+      postCount
+    }));
+
+    // Sort by post count in descending order
+    memberActivity.sort((a, b) => b.postCount - a.postCount);
+
+    res.status(200).json({
+      stats: {
+        memberActivity,
+        totalPosts: postsSnapshot.size,
+        totalMembers: groupData.members.length
+      }
+    });
+  } catch (error) {
+    console.error('Error getting group statistics:', error);
+    res.status(500).json({ message: 'Failed to get group statistics' });
+  }
 }; 
