@@ -158,7 +158,8 @@ const Chat = ({ userId, selectedChat, onClose }) => {
         body: JSON.stringify({
           senderId: userId,
           receiverId: selectedChat.uid,
-          text: chatMessage
+          text: chatMessage,
+          chatId: selectedChat.chatId
         })
       });
 
@@ -175,10 +176,9 @@ const Chat = ({ userId, selectedChat, onClose }) => {
 
       // Emit the message through socket
       if (socketRef.current) {
-        const chatId = [userId, selectedChat.uid].sort().join('_');
         const messageToSend = {
           ...data.chatMessage,
-          chatId: chatId,
+          chatId: selectedChat.chatId,
           receiverId: selectedChat.uid,
           senderId: userId
         };

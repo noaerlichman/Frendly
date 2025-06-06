@@ -179,6 +179,22 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
       updatedAt: serverTimestamp()
     }, { merge: true });
 
+    // Get sender's name for the notification
+    const senderRef = doc(db, 'Users', senderId);
+    const senderDoc = await getDoc(senderRef);
+    const senderName = senderDoc.exists() ? senderDoc.data().fullName : 'Someone';
+
+    // Create notification in the receiver's notifications subcollection
+    const userNotificationsRef = collection(db, 'Users', receiverId, 'Notifications');
+    await addDoc(userNotificationsRef, {
+      type: 'message',
+      senderId: senderId,
+      chatId: currentChatId,
+      message: `${senderName} sent you a message!`,
+      isRead: false,
+      createdAt: serverTimestamp()
+    });
+
     res.status(201).json({
       message: 'Message sent successfully',
       chatId: currentChatId,
