@@ -3,12 +3,12 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ProfileSetup from './pages/ProfileSetup';
-import Profile from './pages/Profile';
+import Profile from './pages/Profile/Profile';
 import AddFriends from './pages/AddFriends';
-import Dashboard from './pages/Dashboard';
-import CreateGroup from './pages/CreateGroup';
-import Group from './pages/Group';
-import JoinGroups from './pages/JoinGroups';
+import Dashboard from './pages/Dashboard/Dashboard';
+import CreateGroup from './pages/CreateGroup/CreateGroup';
+import Group from './pages/Group/Group';
+import JoinGroups from './pages/JoinGroup/JoinGroups';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {

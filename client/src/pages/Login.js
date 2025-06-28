@@ -33,7 +33,7 @@ const Login = () => {
       // Call the login API
       await authService.login({ email, password });
       
-      // Redirect to dashboard page on successful login
+      // navigate to dashboard page on successful login
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Invalid credentials. Please try again.');

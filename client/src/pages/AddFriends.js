@@ -33,7 +33,6 @@ const AddFriends = () => {
       setUserId(user_id);
       
       // Fetch user suggestions
-      console.log("uid:" + user_id);
       fetchUserSuggestions(user_id);
     } catch (err) {
       console.error("Failed to parse token:", err);
@@ -60,7 +59,6 @@ const AddFriends = () => {
         throw new Error(data.message || 'Failed to fetch users');
       }
       
-      // Set the users directly since filtering is done in the backend
       setUsers(data.users || []);
       
       // Fetch request status for each user
@@ -93,10 +91,8 @@ const AddFriends = () => {
           [friendId]: 'pending'
         }));
         
-        // Show success message
         setSuccessMessage(`Friend request sent to ${friendName}!`);
         
-        // Clear success message after 3 seconds
         setTimeout(() => {
           setSuccessMessage('');
         }, 3000);

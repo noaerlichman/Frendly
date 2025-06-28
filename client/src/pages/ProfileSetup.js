@@ -17,7 +17,7 @@ const ProfileSetup = () => {
 
   const { fullName, dateOfBirth, gender, profilePicture } = formData;
 
-  // If there's no user in the state, redirect to login
+  // in default cases, go to login
   if (!user) {
     navigate('/login');
     return null;
@@ -27,6 +27,7 @@ const ProfileSetup = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // only for image!
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../utils/api';
-import api from '../utils/api';
+import { authService } from '../../utils/api';
+import api from '../../utils/api';
 import './CreateGroup.css';
 
 const CreateGroup = () => {
@@ -62,7 +62,6 @@ const CreateGroup = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
 
-    // Clear name error when user starts typing
     if (name === 'name') {
       setNameError('');
     }
@@ -94,7 +93,6 @@ const CreateGroup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submission started');
     setError('');
     setLoading(true);
 
@@ -111,19 +109,15 @@ const CreateGroup = () => {
         throw new Error('Authentication required');
       }
 
-      console.log('Preparing API request...');
       const requestData = {
         ...formData,
         tags: selectedTags,
         adminId: userId,
-        members: [userId] // Initially only the admin is a member
+        members: [userId] 
       };
-      console.log('Request data:', requestData);
 
       const response = await api.post('/api/groups', requestData);
-      console.log('API Response:', response.data);
-      
-      console.log('Group created successfully, navigating to profile');
+
       navigate('/profile', { state: { activeTab: 'groups' } });
     } catch (err) {
       console.error('Error in handleSubmit:', err);

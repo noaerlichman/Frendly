@@ -14,8 +14,9 @@ import {
   approveGroupRequest, 
   rejectGroupRequest, 
   uploadGroupPostImage,
-  getGroupStats 
 } from '../controllers/groupController';
+
+import { getGroupStats } from '../controllers/groupStatsController';
 
 const router = express.Router();
 

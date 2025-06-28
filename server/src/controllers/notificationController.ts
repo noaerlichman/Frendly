@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, updateDoc, orderBy, deleteDoc } from 'firebase/firestore';
-import { Notification, ErrorResponse } from '../types';
+import { Notification, ErrorResponse } from '../types/types';
 
 // Utility function to create a notification
 export const createNotification = async (notificationData: Omit<Notification, 'id' | 'createdAt'>) => {
@@ -14,7 +14,7 @@ export const createNotification = async (notificationData: Omit<Notification, 'i
   return await addDoc(userNotificationsRef, notification);
 };
 
-// Send friend request notification
+// Send friend request notification 
 export const sendFriendRequestNotification = async (senderId: string, recipientId: string) => {
   try {
     // Get sender's display name
@@ -65,28 +65,7 @@ export const sendGroupJoinRequestNotification = async (senderId: string, adminId
   }
 };
 
-// Send post like notification
-export const sendPostLikeNotification = async (senderId: string, postOwnerId: string, postId: string) => {
-  try {
-    // Get sender's display name
-    const senderRef = doc(db, 'Users', senderId);
-    const senderDoc = await getDoc(senderRef);
-    const senderName = senderDoc.data()?.fullName || 'Someone';
-
-    await createNotification({
-      recipientId: postOwnerId,
-      type: 'post_like',
-      senderId,
-      postId,
-      message: `${senderName} liked your post`,
-      isRead: false
-    });
-  } catch (error) {
-    console.error('Error sending post like notification:', error);
-  }
-};
-
-// Get user's notifications
+// Get user's notifications by: GET /user/:userId
 export const getUserNotifications = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
@@ -111,7 +90,7 @@ export const getUserNotifications = async (req: Request, res: Response) => {
   }
 };
 
-// Mark notification as read
+// Mark notification as read by: POST /:userId/:notificationId/read
 export const markNotificationAsRead = async (req: Request, res: Response) => {
   try {
     const { userId, notificationId } = req.params;
@@ -133,7 +112,7 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
   }
 };
 
-// Delete notification
+// Delete notification by: DELETE /:userId/:notificationId
 export const deleteNotification = async (req: Request, res: Response) => {
   try {
     const { userId, notificationId } = req.params;

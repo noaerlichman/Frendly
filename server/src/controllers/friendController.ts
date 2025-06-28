@@ -15,14 +15,11 @@ import {
   serverTimestamp,
   deleteDoc
 } from 'firebase/firestore';
-import { Friend, UserProfile, ErrorResponse } from '../types/index';
+import { Friend, UserProfile, ErrorResponse } from '../types/types';
 import { createNotification } from './notificationController';
 
-/**
- * Get all users for friend suggestions
- * @route GET /api/friends/suggestions
- * @access Private
- */
+
+// get all users that are not friend of the current user by: GET /api/friends/suggestions
 export const getUserSuggestions = async (req: Request, res: Response): Promise<void> => {
   const { uid } = req.query;
 
@@ -50,7 +47,7 @@ export const getUserSuggestions = async (req: Request, res: Response): Promise<v
     const users: Friend[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data() as UserProfile;
-      const docId = doc.id; // Get the document ID
+      const docId = doc.id; 
       
       // Skip if this is the current user or already a friend
       if (docId === uid || friendIds.includes(docId)) {
@@ -58,7 +55,7 @@ export const getUserSuggestions = async (req: Request, res: Response): Promise<v
       }
       
       users.push({
-        uid: docId, // Use the document ID as uid
+        uid: docId, 
         fullName: data.fullName,
         profilePicture: data.profilePicture
       });
@@ -74,11 +71,8 @@ export const getUserSuggestions = async (req: Request, res: Response): Promise<v
   }
 };
 
-/**
- * Add a friend (called after friend request is approved)
- * @route POST /api/friends
- * @access Private
- */
+
+// add friend (after request approved) by: POST /api/friends
 export const addFriend = async (req: Request, res: Response): Promise<void> => {
   const { senderId, receiverId } = req.body;
 
@@ -152,11 +146,8 @@ export const addFriend = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Remove a friend
- * @route DELETE /api/friends/:friendId
- * @access Private
- */
+
+// remove friend by: DELETE /api/friends/:friendId
 export const removeFriend = async (req: Request, res: Response): Promise<void> => {
   const { friendId } = req.params;
   const { uid } = req.body;
@@ -202,11 +193,8 @@ export const removeFriend = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-/**
- * Get user's friends
- * @route GET /api/friends/user/:uid
- * @access Private
- */
+
+// get all user's friends by: GET /api/friends/user/:uid
 export const getUserFriends = async (req: Request, res: Response): Promise<void> => {
   const { uid } = req.params;
 
@@ -232,10 +220,10 @@ export const getUserFriends = async (req: Request, res: Response): Promise<void>
     const data = docSnap.data();
     const friends = data.friends || [];
 
-    // Fetch additional user data for each friend
+    // get the friend's data - birthday and profile picture
     const friendsWithDetails = await Promise.all(
       friends.map(async (friend: Friend) => {
-        // Get friend's full profile from Users collection
+
         const userRef = doc(db, 'Users', friend.uid);
         const userDoc = await getDoc(userRef);
         
@@ -261,11 +249,8 @@ export const getUserFriends = async (req: Request, res: Response): Promise<void>
   }
 };
 
-/**
- * Send a friend request
- * @route POST /api/friends/request
- * @access Private
- */
+
+// send add friend request by: POST /api/friends/request
 export const sendFriendRequest = async (req: Request, res: Response): Promise<void> => {
   const { senderId, receiverId } = req.body;
 
@@ -302,7 +287,7 @@ export const sendFriendRequest = async (req: Request, res: Response): Promise<vo
       createdAt: serverTimestamp()
     };
 
-    // Add request to sender's FriendRequest subcollection
+    // Add request to sender's FriendRequest collection
     const senderRequestsRef = collection(db, 'Users', senderId, 'FriendRequest');
     const requestDoc = await addDoc(senderRequestsRef, friendRequest);
 
@@ -328,11 +313,8 @@ export const sendFriendRequest = async (req: Request, res: Response): Promise<vo
   }
 };
 
-/**
- * Handle friend request (approve/reject)
- * @route PUT /api/friends/request
- * @access Private
- */
+
+// handle approve or reject selection for friend request by: PUT /api/friends/request
 export const handleFriendRequest = async (req: Request, res: Response): Promise<void> => {
   const { userId, senderId, action } = req.body;
 
@@ -444,7 +426,7 @@ export const handleFriendRequest = async (req: Request, res: Response): Promise<
         isRead: false
       });
     } else {
-      // Delete the friend request document from sender's FriendRequest subcollection
+      // Delete the friend request document from sender's FriendRequest collection
       const senderRequestsRef = collection(db, 'Users', senderId, 'FriendRequest');
       const senderRequestQuery = query(
         senderRequestsRef,
@@ -468,11 +450,8 @@ export const handleFriendRequest = async (req: Request, res: Response): Promise<
   }
 };
 
-/**
- * Check friend request status between two users
- * @route GET /api/friends/request/status
- * @access Private
- */
+
+// check friend request status: pending/approved/add friend by: GET /api/friends/request/status
 export const checkFriendRequestStatus = async (req: Request, res: Response) => {
   try {
     const { senderId, receiverId } = req.query;

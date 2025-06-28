@@ -1,16 +1,13 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, orderBy, updateDoc, arrayUnion, setDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
-import { Group, ErrorResponse } from '../types';
+import { Group, ErrorResponse } from '../types/types';
 import { Timestamp } from 'firebase/firestore';
 import cloudinary from '../config/cloudinary';
 import { sendGroupJoinRequestNotification } from './notificationController';
 
-/**
- * Create a new group
- * @route POST /api/groups
- * @access Private
- */
+
+// create new group by: POST /api/groups
 export const createGroup = async (req: Request, res: Response): Promise<void> => {
   const { name, description, tags, isPublic, adminId, members } = req.body;
 
@@ -30,12 +27,11 @@ export const createGroup = async (req: Request, res: Response): Promise<void> =>
       tags: tags || [],
       isPublic: isPublic ?? true,
       adminId,
-      members: members || [adminId], // Initially only the admin is a member
+      members: members || [adminId], 
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
 
-    // Add the group to Firestore
     const groupRef = await addDoc(collection(db, 'Groups'), groupData);
 
     res.status(201).json({
@@ -52,6 +48,7 @@ export const createGroup = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
+// get the user's groups by: GET /user/:userId
 export const getUserGroups = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
@@ -88,6 +85,7 @@ export const getUserGroups = async (req: Request, res: Response) => {
   }
 };
 
+// get the group by ID by: GET /:groupId
 export const getGroupById = async (req: Request, res: Response) => {
   try {
     const { groupId } = req.params;
@@ -116,6 +114,7 @@ export const getGroupById = async (req: Request, res: Response) => {
   }
 };
 
+// get all posts of the group by: GET /:groupId/posts
 export const getGroupPosts = async (req: Request, res: Response) => {
   try {
     const { groupId } = req.params;
@@ -156,18 +155,11 @@ export const getGroupPosts = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Upload group post image to Cloudinary
- * @route POST /api/groups/:groupId/posts/:userId/image
- * @access Private
- */
+
+// upload the group's posts images to cloudinary by: POST /api/groups/:groupId/posts/:userId/image
 export const uploadGroupPostImage = async (req: Request, res: Response): Promise<void> => {
   const { groupId, userId } = req.params;
   const file = req.file;
-
-  console.log('=== Starting Group Post Image Upload Process ===');
-  console.log('Group ID:', groupId);
-  console.log('User ID:', userId);
 
   if (!file) {
     console.log('Error: No file received in request');
@@ -190,10 +182,8 @@ export const uploadGroupPostImage = async (req: Request, res: Response): Promise
     });
 
     // Convert buffer to base64
-    console.log('Converting file to base64...');
     const b64 = Buffer.from(file.buffer).toString('base64');
     const dataURI = `data:${file.mimetype};base64,${b64}`;
-    console.log('Base64 conversion complete. Data URI length:', dataURI.length);
 
     // Upload to Cloudinary
     console.log('Starting Cloudinary upload...');
@@ -210,15 +200,6 @@ export const uploadGroupPostImage = async (req: Request, res: Response): Promise
     });
 
     console.log('Cloudinary upload successful!');
-    console.log('Cloudinary response:', {
-      url: result.secure_url,
-      public_id: result.public_id,
-      folder: result.folder,
-      format: result.format,
-      width: result.width,
-      height: result.height,
-      bytes: result.bytes
-    });
 
     res.status(200).json({
       message: 'Group post image uploaded successfully',
@@ -235,6 +216,7 @@ export const uploadGroupPostImage = async (req: Request, res: Response): Promise
   }
 };
 
+// create a new post in the group by: POST /:groupId/posts
 export const createGroupPost = async (req: Request, res: Response) => {
   try {
     const { groupId } = req.params;
@@ -281,6 +263,7 @@ export const createGroupPost = async (req: Request, res: Response) => {
   }
 };
 
+// edit group posts by: PUT /:groupId/posts/:postId
 export const editGroupPost = async (req: Request, res: Response) => {
   try {
     const { groupId, postId } = req.params;
@@ -331,6 +314,7 @@ export const editGroupPost = async (req: Request, res: Response) => {
   }
 };
 
+// delete group post by: DELETE /:groupId/posts/:postId
 export const deleteGroupPost = async (req: Request, res: Response) => {
   try {
     const { groupId, postId } = req.params;
@@ -370,6 +354,7 @@ export const deleteGroupPost = async (req: Request, res: Response) => {
   }
 };
 
+// search groups in the search bar by: GET /search
 export const searchGroups = async (req: Request, res: Response) => {
   try {
     const { query: searchQuery } = req.query as { query: string };
@@ -425,6 +410,7 @@ export const searchGroups = async (req: Request, res: Response) => {
   }
 };
 
+// get all groups in data base by: GET /
 export const getAllGroups = async (req: Request, res: Response) => {
   try {
     const groupsRef = collection(db, 'Groups');
@@ -446,6 +432,7 @@ export const getAllGroups = async (req: Request, res: Response) => {
   }
 };
 
+// join group by: /:groupId/join
 export const joinGroup = async (req: Request, res: Response) => {
   try {
     const { groupId } = req.params;
@@ -515,6 +502,7 @@ export const joinGroup = async (req: Request, res: Response) => {
   }
 };
 
+// admin approve the group join request by: POST /:groupId/approve/:userId
 export const approveGroupRequest = async (req: Request, res: Response) => {
   try {
     const { groupId, userId } = req.params;
@@ -589,6 +577,7 @@ export const approveGroupRequest = async (req: Request, res: Response) => {
   }
 };
 
+// admin rejected the join group request by: POST /:groupId/reject/:userId
 export const rejectGroupRequest = async (req: Request, res: Response) => {
   try {
     const { groupId, userId } = req.params;
@@ -656,96 +645,3 @@ export const rejectGroupRequest = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to reject group request' });
   }
 };
-
-export const getGroupStats = async (req: Request, res: Response) => {
-  try {
-    const { groupId } = req.params;
-    const { userId } = req.query;
-
-    if (!groupId || !userId) {
-      return res.status(400).json({ message: 'Group ID and user ID are required' });
-    }
-
-    // Get the group document
-    const groupRef = doc(db, 'Groups', groupId);
-    const groupDoc = await getDoc(groupRef);
-
-    if (!groupDoc.exists()) {
-      return res.status(404).json({ message: 'Group not found' });
-    }
-
-    const groupData = groupDoc.data() as Group;
-
-    // Check if user is admin
-    if (groupData.adminId !== userId) {
-      return res.status(403).json({ message: 'Only group admin can view statistics' });
-    }
-
-    // Get all posts for the group
-    const postsRef = collection(db, 'Groups', groupId, 'Posts');
-    const postsSnapshot = await getDocs(postsRef);
-
-    // Count posts per member
-    const memberPostCounts = new Map<string, number>();
-    const memberNames = new Map<string, string>();
-
-    // Initialize counts for all members
-    for (const memberId of groupData.members) {
-      memberPostCounts.set(memberId, 0);
-    }
-
-    // Initialize hourly activity array
-    const hourlyActivity = Array.from({ length: 24 }, (_, i) => ({
-      hour: i,
-      label: `${i}:00`,
-      count: 0
-    }));
-
-    // Count posts and track hourly activity
-    postsSnapshot.forEach((doc) => {
-      const postData = doc.data();
-      const currentCount = memberPostCounts.get(postData.userId) || 0;
-      memberPostCounts.set(postData.userId, currentCount + 1);
-
-      // Track hourly activity
-      if (postData.createdAt) {
-        const postDate = postData.createdAt.toDate();
-        const hour = postDate.getHours();
-        hourlyActivity[hour].count++;
-      }
-    });
-
-    // Get member names
-    const memberPromises = groupData.members.map(async (memberId) => {
-      const userRef = doc(db, 'Users', memberId);
-      const userDoc = await getDoc(userRef);
-      if (userDoc.exists()) {
-        memberNames.set(memberId, userDoc.data().fullName);
-      }
-    });
-
-    await Promise.all(memberPromises);
-
-    // Format data for response
-    const memberActivity = Array.from(memberPostCounts.entries()).map(([memberId, postCount]) => ({
-      memberId,
-      memberName: memberNames.get(memberId) || 'Unknown User',
-      postCount
-    }));
-
-    // Sort by post count in descending order
-    memberActivity.sort((a, b) => b.postCount - a.postCount);
-
-    res.status(200).json({
-      stats: {
-        memberActivity,
-        hourlyActivity,
-        totalPosts: postsSnapshot.size,
-        totalMembers: groupData.members.length
-      }
-    });
-  } catch (error) {
-    console.error('Error getting group statistics:', error);
-    res.status(500).json({ message: 'Failed to get group statistics' });
-  }
-}; 

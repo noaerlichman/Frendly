@@ -8,14 +8,11 @@ import {
   updateDoc, 
   arrayRemove 
 } from 'firebase/firestore';
-import { Post, Friend, ErrorResponse } from '../types/index';
+import { Post, Friend, ErrorResponse } from '../types/types';
 import cloudinary from '../config/cloudinary';
 
-/**
- * Create a new post
- * @route POST /api/posts
- * @access Private
- */
+
+// create new post by: POST /api/posts
 export const createPost = async (req: Request, res: Response): Promise<void> => {
   const { uid, text, imageUrl }: Post = req.body;
 
@@ -28,10 +25,9 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
     // Reference to the user's posts document
     const userPostsRef = doc(db, 'userPosts', uid);
     
-    // Generate a unique ID for the post
     const postId = Date.now().toString();
     
-    // Create the new post
+    // Create the new post instance
     const newPost = {
       id: postId,
       text,
@@ -39,7 +35,6 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
       createdAt: new Date().toISOString()
     };
     
-    // Check if the document exists
     const docSnap = await getDoc(userPostsRef);
     
     if (docSnap.exists()) {
@@ -67,11 +62,8 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-/**
- * Get posts by user ID
- * @route GET /api/posts/user/:uid
- * @access Private
- */
+
+// get user's posts by: GET /api/posts/user/:uid
 export const getUserPosts = async (req: Request, res: Response): Promise<void> => {
   const { uid } = req.params;
   const { includeFriends } = req.query;
@@ -96,13 +88,13 @@ export const getUserPosts = async (req: Request, res: Response): Promise<void> =
       const userPosts = posts.map((post: any) => ({
         ...post,
         uid,
-        isOwner: true // Mark as owner for UI permissions
+        isOwner: true 
       }));
       
       allPosts.push(...userPosts);
     }
     
-    // If includeFriends is true, fetch friends' posts
+    // in case of Dashboard - get friend's posts too
     if (includeFriends === 'true') {
       // Get user's friends
       const userFriendsRef = doc(db, 'Friends', uid);
@@ -151,11 +143,8 @@ export const getUserPosts = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-/**
- * Update a post
- * @route PUT /api/posts/:id
- * @access Private
- */
+
+// update post by: PUT /api/posts/:id
 export const updatePost = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { uid, text }: Post = req.body;
@@ -217,11 +206,8 @@ export const updatePost = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-/**
- * Delete a post
- * @route DELETE /api/posts/:id
- * @access Private
- */
+
+// delete a post by: DELETE /api/posts/:id
 export const deletePost = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { uid } = req.body;
@@ -267,17 +253,11 @@ export const deletePost = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-/**
- * Upload post image to Cloudinary
- * @route POST /api/posts/:uid/image
- * @access Private
- */
+
+// upload post image to cloudinary by: POST /api/posts/:uid/image
 export const uploadPostImage = async (req: Request, res: Response): Promise<void> => {
   const { uid } = req.params;
   const file = req.file;
-
-  console.log('=== Starting Post Image Upload Process ===');
-  console.log('User ID:', uid);
 
   if (!file) {
     console.log('Error: No file received in request');
@@ -292,27 +272,11 @@ export const uploadPostImage = async (req: Request, res: Response): Promise<void
   }
 
   try {
-    console.log('File details:', {
-      originalname: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size,
-      buffer: file.buffer ? 'Buffer present' : 'No buffer'
-    });
-
     // Convert buffer to base64
-    console.log('Converting file to base64...');
     const b64 = Buffer.from(file.buffer).toString('base64');
     const dataURI = `data:${file.mimetype};base64,${b64}`;
-    console.log('Base64 conversion complete. Data URI length:', dataURI.length);
 
     // Upload to Cloudinary
-    console.log('Starting Cloudinary upload...');
-    console.log('Upload parameters:', {
-      folder: `UserPosts/${uid}`,
-      public_id: `post_${Date.now()}`,
-      resource_type: 'image'
-    });
-
     const result = await cloudinary.uploader.upload(dataURI, {
       folder: `UserPosts/${uid}`,
       public_id: `post_${Date.now()}`,
@@ -320,15 +284,6 @@ export const uploadPostImage = async (req: Request, res: Response): Promise<void
     });
 
     console.log('Cloudinary upload successful!');
-    console.log('Cloudinary response:', {
-      url: result.secure_url,
-      public_id: result.public_id,
-      folder: result.folder,
-      format: result.format,
-      width: result.width,
-      height: result.height,
-      bytes: result.bytes
-    });
 
     res.status(200).json({
       message: 'Post image uploaded successfully',

@@ -6,13 +6,10 @@ import {
   UserCredential,
   AuthError
 } from 'firebase/auth';
-import { User, AuthResponse, ErrorResponse } from '../types/index';
+import { User, AuthResponse, ErrorResponse } from '../types/types';
 
-/**
- * Register a new user
- * @route POST /api/auth/register
- * @access Public
- */
+
+// register a new user by doing: POST /api/aut/register
 export const register = async (req: Request, res: Response): Promise<void> => {
   const { email, password }: User = req.body;
 
@@ -50,11 +47,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Login user
- * @route POST /api/auth/login
- * @access Public
- */
+
+// login user by: POST /api/auth/login
 export const login = async (req: Request, res: Response): Promise<void> => {
   const { email, password }: User = req.body;
 

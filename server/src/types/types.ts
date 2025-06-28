@@ -45,6 +45,7 @@ export interface Group {
   members: string[];
   createdAt?: any;
   updatedAt?: any;
+  pendingRequests?: string[];
 }
 
 export interface UserResponse {
@@ -79,3 +80,23 @@ export interface Notification {
   groupId?: string;
   postId?: string;
 } 
+
+export interface ChatMessage {
+  id?: string;
+  senderId: string;
+  text: string;
+  createdAt: any;
+  isRead: boolean;
+}
+
+export interface Chat {
+  id?: string;
+  participants: string[];
+  lastMessage?: {
+    text: string;
+    senderId: string;
+    createdAt: any;
+  };
+  createdAt: any;
+  updatedAt: any;
+}

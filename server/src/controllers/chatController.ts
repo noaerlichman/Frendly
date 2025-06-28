@@ -14,33 +14,11 @@ import {
   setDoc,
   collectionGroup
 } from 'firebase/firestore';
-import { ErrorResponse } from '../types';
+import { ErrorResponse, Chat, ChatMessage } from '../types/types';
+import { getIO } from '../services/socket'; 
 
-interface ChatMessage {
-  id?: string;
-  senderId: string;
-  text: string;
-  createdAt: any;
-  isRead: boolean;
-}
 
-interface Chat {
-  id?: string;
-  participants: string[];
-  lastMessage?: {
-    text: string;
-    senderId: string;
-    createdAt: any;
-  };
-  createdAt: any;
-  updatedAt: any;
-}
-
-/**
- * Get or create chat between two users
- * @route GET /api/chat/:userId/:otherUserId
- * @access Private
- */
+// get or create chat between 2 users by: GET /api/chat/:userId/:otherUserId
 export const getChatMessages = async (req: Request, res: Response): Promise<void> => {
   const { userId, otherUserId } = req.params;
 
@@ -115,11 +93,8 @@ export const getChatMessages = async (req: Request, res: Response): Promise<void
   }
 };
 
-/**
- * Send a chat message
- * @route POST /api/chat
- * @access Private
- */
+
+// send message by: POST /api/chat
 export const sendMessage = async (req: Request, res: Response): Promise<void> => {
   const { senderId, receiverId, text, chatId } = req.body;
 
@@ -132,24 +107,18 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
     const participants = [senderId, receiverId].sort();
     let currentChatId = chatId;
 
-    // If no chatId provided, find or create chat
+    // Find or create chat
     if (!currentChatId) {
       const chatsRef = collection(db, 'Chats');
-      const q = query(
-        chatsRef,
-        where('participants', '==', participants)
-      );
-
+      const q = query(chatsRef, where('participants', '==', participants));
       const querySnapshot = await getDocs(q);
-      
+
       if (querySnapshot.empty) {
-        // Create new chat
-        const newChat: Omit<Chat, 'id'> = {
+        const newChat = {
           participants,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         };
-        
         const chatDoc = await addDoc(chatsRef, newChat);
         currentChatId = chatDoc.id;
       } else {
@@ -158,7 +127,7 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
     }
 
     // Create message
-    const messageData: Omit<ChatMessage, 'id'> = {
+    const messageData = {
       senderId,
       text,
       createdAt: serverTimestamp(),
@@ -168,7 +137,7 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
     const messagesRef = collection(db, 'Chats', currentChatId, 'Messages');
     const messageDoc = await addDoc(messagesRef, messageData);
 
-    // Update chat's last message and timestamp
+    // Update last message in chat
     const chatRef = doc(db, 'Chats', currentChatId);
     await setDoc(chatRef, {
       lastMessage: {
@@ -179,29 +148,37 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // Get sender's name for the notification
+    // Notify receiver
     const senderRef = doc(db, 'Users', senderId);
     const senderDoc = await getDoc(senderRef);
     const senderName = senderDoc.exists() ? senderDoc.data().fullName : 'Someone';
 
-    // Create notification in the receiver's notifications subcollection
-    const userNotificationsRef = collection(db, 'Users', receiverId, 'Notifications');
-    await addDoc(userNotificationsRef, {
+    const notificationsRef = collection(db, 'Users', receiverId, 'Notifications');
+    await addDoc(notificationsRef, {
       type: 'message',
-      senderId: senderId,
+      senderId,
       chatId: currentChatId,
       message: `${senderName} sent you a message!`,
       isRead: false,
       createdAt: serverTimestamp()
     });
 
+    // Emit newMessage to other socket clients
+    const io = getIO();
+    const payload = {
+      id: messageDoc.id,
+      senderId,
+      receiverId,
+      text,
+      createdAt: new Date(), 
+      chatId: currentChatId
+    };
+    io.to(currentChatId).emit('newMessage', payload);
+
     res.status(201).json({
       message: 'Message sent successfully',
       chatId: currentChatId,
-      chatMessage: {
-        id: messageDoc.id,
-        ...messageData
-      }
+      chatMessage: payload
     });
   } catch (error) {
     console.error('Send message error:', error);
@@ -209,11 +186,8 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-/**
- * Mark messages as read
- * @route PUT /api/chat/read
- * @access Private
- */
+
+// mark message as read by: PUT /api/chat/read
 export const markMessagesAsRead = async (req: Request, res: Response): Promise<void> => {
   const { userId, chatId } = req.body;
 

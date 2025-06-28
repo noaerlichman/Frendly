@@ -18,11 +18,11 @@ const FriendsList = ({ userId, onViewFriendPosts, viewMode, searchQuery }) => {
     if (!dateOfBirth) return Infinity;
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize today's date to midnight
+    today.setHours(0, 0, 0, 0); 
 
     const [year, month, day] = dateOfBirth.split('-').map(num => parseInt(num));
     const nextBirthday = new Date(today.getFullYear(), month - 1, day);
-    nextBirthday.setHours(0, 0, 0, 0); // Normalize birthday date to midnight
+    nextBirthday.setHours(0, 0, 0, 0); 
 
     // If birthday has already passed this year, set it to next year
     if (nextBirthday < today) {
@@ -80,7 +80,6 @@ const FriendsList = ({ userId, onViewFriendPosts, viewMode, searchQuery }) => {
       });
 
       const data = await response.json();
-      console.log('Friends data:', data); // For debugging
       
       if (!response.ok) {
         throw new Error(data.message || 'Failed to fetch friends');
