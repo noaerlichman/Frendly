@@ -14,7 +14,7 @@ import cloudinary from '../config/cloudinary';
 
 // create new post by: POST /api/posts
 export const createPost = async (req: Request, res: Response): Promise<void> => {
-  const { uid, text, imageUrl }: Post = req.body;
+  const { uid, text, imageUrl, createdAt }: Post = req.body;
 
   if (!uid || !text) {
     res.status(400).json({ message: 'User ID and text content are required' } as ErrorResponse);
@@ -32,7 +32,7 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
       id: postId,
       text,
       imageUrl: imageUrl || null,
-      createdAt: new Date().toISOString()
+      createdAt: createdAt || new Date().toISOString()
     };
     
     const docSnap = await getDoc(userPostsRef);

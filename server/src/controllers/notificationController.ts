@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../config/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, updateDoc, orderBy, deleteDoc } from 'firebase/firestore';
 import { Notification, ErrorResponse } from '../types/types';
+import { group } from 'console';
 
 // Utility function to create a notification
 export const createNotification = async (notificationData: Omit<Notification, 'id' | 'createdAt'>) => {
@@ -31,6 +32,43 @@ export const sendFriendRequestNotification = async (senderId: string, recipientI
     });
   } catch (error) {
     console.error('Error sending friend request notification:', error);
+  }
+};
+
+export const sendFriendRequestHandlerNotification =async (senderId: string, receiverId: string, action: string) => {
+  try {
+    const senderRef = doc(db, 'Users', senderId);
+    const senderDoc = await getDoc(senderRef);
+    const senderName = senderDoc.exists() ? senderDoc.data().fullName : 'Someone';
+
+    await createNotification({
+      recipientId: receiverId,
+      senderId: senderId,
+      type: 'friend_request',
+      message: `${senderName} ${action} your friend request`,
+      isRead: false
+    });
+  } catch (error) {
+    console.error(`Error sending friend request ${action} notification:`, error);
+  }
+};
+
+export const sendGroupRequestHandlerNotification =async (groupId: string, groupName: string, senderId: string, receiverId: string, action: string) => {
+  try {
+    const senderRef = doc(db, 'Users', senderId);
+    const senderDoc = await getDoc(senderRef);
+    const senderName = senderDoc.exists() ? senderDoc.data().fullName : 'Someone';
+
+    await createNotification({
+      recipientId: receiverId,
+      senderId: senderId,
+      groupId: groupId,
+      type: "group_join",
+      message: `Your request to join ${groupName} has been ${action}`,
+      isRead: false
+    });
+  } catch (error) {
+    console.error(`Error sending friend request ${action} notification:`, error);
   }
 };
 
@@ -131,3 +169,24 @@ export const deleteNotification = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to delete notification' } as ErrorResponse);
   }
 }; 
+
+export const sendChatMessageNotification =async (currentChatId: string, receiverId: string, senderId: string) => {
+
+  try{
+    const senderRef = doc(db, 'Users', senderId);
+    const senderDoc = await getDoc(senderRef);
+    const senderName = senderDoc.exists() ? senderDoc.data().fullName : 'Someone';
+
+    const notificationsRef = collection(db, 'Users', receiverId, 'Notifications');
+    await addDoc(notificationsRef, {
+      type: 'message',
+      senderId,
+      chatId: currentChatId,
+      message: `${senderName} sent you a message!`,
+      isRead: false,
+      createdAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error sending notification:', error);
+  }
+};

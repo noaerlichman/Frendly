@@ -16,7 +16,7 @@ import {
   deleteDoc
 } from 'firebase/firestore';
 import { Friend, UserProfile, ErrorResponse } from '../types/types';
-import { createNotification } from './notificationController';
+import { createNotification, sendFriendRequestNotification , sendFriendRequestHandlerNotification} from './notificationController';
 
 
 // get all users that are not friend of the current user by: GET /api/friends/suggestions
@@ -178,11 +178,46 @@ export const removeFriend = async (req: Request, res: Response): Promise<void> =
       return;
     }
     
-    // Remove the friend
+    // Remove the friend from friends list
     await updateDoc(userFriendsRef, {
       friends: arrayRemove(friendToRemove)
     });
-    
+
+    // Remove user from friend's Friends document
+    const friendFriendsRef = doc(db, 'Friends', friendId);
+    const friendDocSnap = await getDoc(friendFriendsRef);
+
+    if (friendDocSnap.exists()) {
+      const friendData = friendDocSnap.data();
+      const userToRemove = (friendData.friends || []).find((f: Friend) => f.uid === uid);
+
+      if (userToRemove) {
+        await updateDoc(friendFriendsRef, {
+          friends: arrayRemove(userToRemove)
+        });
+      }
+    }
+
+    // remove friend request from the user id
+    const userRequestQuery = query(
+      collection(db, 'Users', uid, 'FriendRequest'),
+      where('receiverId', '==', friendId)
+    );
+    const userRequestSnap = await getDocs(userRequestQuery);
+    for (const docSnap of userRequestSnap.docs) {
+      await deleteDoc(docSnap.ref);
+    }
+
+    // remove friend request from the friend id
+    const friendRequestQuery = query(
+      collection(db, 'Users', friendId, 'FriendRequest'),
+      where('receiverId', '==', uid)
+    );
+    const friendRequestSnap = await getDocs(friendRequestQuery);
+    for (const docSnap of friendRequestSnap.docs) {
+      await deleteDoc(docSnap.ref);
+    }
+
     res.status(200).json({
       message: 'Friend removed successfully',
       uid: friendId
@@ -292,13 +327,7 @@ export const sendFriendRequest = async (req: Request, res: Response): Promise<vo
     const requestDoc = await addDoc(senderRequestsRef, friendRequest);
 
     // Create notification for the receiver
-    await createNotification({
-      recipientId: receiverId,
-      senderId: senderId,
-      type: 'friend_request',
-      message: `${senderProfile.fullName} sent you a friend request`,
-      isRead: false
-    });
+    sendFriendRequestNotification(senderId, receiverId);
 
     res.status(201).json({
       message: 'Friend request sent successfully',
@@ -418,13 +447,8 @@ export const handleFriendRequest = async (req: Request, res: Response): Promise<
       }
 
       // Create notification for the sender
-      await createNotification({
-        recipientId: senderId,
-        senderId: userId,
-        type: 'friend_request',
-        message: `${receiverData.fullName} accepted your friend request`,
-        isRead: false
-      });
+      sendFriendRequestHandlerNotification(userId, senderId, "accepted")
+
     } else {
       // Delete the friend request document from sender's FriendRequest collection
       const senderRequestsRef = collection(db, 'Users', senderId, 'FriendRequest');
@@ -438,6 +462,8 @@ export const handleFriendRequest = async (req: Request, res: Response): Promise<
       if (!senderRequestSnapshot.empty) {
         await deleteDoc(senderRequestSnapshot.docs[0].ref);
       }
+
+      sendFriendRequestHandlerNotification(userId, senderId, "rejected")
     }
 
     res.status(200).json({

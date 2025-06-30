@@ -7,29 +7,19 @@ const router = express.Router();
 // Configure multer for memory storage
 const upload = multer({ storage: multer.memoryStorage() });
 
-// @route   POST /api/posts
-// @desc    Create a new post
-// @access  Private
+// create new post: /api/posts
 router.post('/', createPost);
 
-// @route   GET /api/posts/user/:uid
-// @desc    Get posts by user ID
-// @access  Private
+// get all user's  posts: /api/posts/user/:uid
 router.get('/user/:uid', getUserPosts);
 
-// @route   PUT /api/posts/:id
-// @desc    Update a post
-// @access  Private
+// update some post: /api/posts/:id
 router.put('/:id', updatePost);
 
-// @route   DELETE /api/posts/:id
-// @desc    Delete a post
-// @access  Private
+// delete post by post id: /api/posts/:id
 router.delete('/:id', deletePost);
 
-// @route   POST /api/posts/:uid/image
-// @desc    Upload post image
-// @access  Private
+// upload image to cloudinary: /api/posts/:uid/image
 router.post('/:uid/image', upload.single('image'), uploadPostImage);
 
 export default router; 

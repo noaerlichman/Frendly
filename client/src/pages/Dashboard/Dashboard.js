@@ -28,36 +28,56 @@ const Dashboard = () => {
   const [showChatMenu, setShowChatMenu] = useState(false);
   const [friends, setFriends] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
+  const [userFullName, setUserFullName] = useState('');
+  const [userProfilePicture, setUserProfilePicture] = useState('');
+
   
   useEffect(() => {
-    // Get user ID from token
-    const token = authService.getToken();
-    if (!token) {
-      navigate('/login');
-      return;
-    }
+    const init = async () => {
+      const token = authService.getToken();
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+  
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        const { user_id } = JSON.parse(jsonPayload);
+        setUserId(user_id);
+  
+        const profileRes = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/users/profile/${user_id}`, {
+          headers: {
+            'Authorization': `Bearer ${authService.getToken()}`
+          }
+        });
+  
+        if (!profileRes.ok) throw new Error('Failed to fetch user profile');
+        const { profile } = await profileRes.json();
+        console.log("full name: " + profile.fullName)
+        console.log("profilePicture: " + profile.profilePicture)
 
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      const { user_id } = JSON.parse(jsonPayload);
-      setUserId(user_id);
-      
-      // Fetch posts
-      fetchPosts(user_id);
-    } catch (err) {
-      console.error("Failed to parse token:", err);
-      setError("Session expired. Please login again.");
-      authService.logout();
-      navigate('/login');
-    }
+        setUserFullName(profile.fullName);
+        setUserProfilePicture(profile.profilePicture);
+  
+        fetchPosts(user_id);
+      } catch (err) {
+        console.error("Failed to initialize user data:", err);
+        setError("Session expired. Please login again.");
+        authService.logout();
+        navigate('/login');
+      }
+    };
+  
+    init();
   }, [navigate]);
+  
 
   // get all posts - user and friends
   const fetchPosts = async (uid) => {
@@ -498,7 +518,11 @@ const Dashboard = () => {
       const dataPost = await responsePost.json();
       
       // Add new post to the beginning of the posts array
-      setPosts([dataPost.post, ...posts]);
+      setPosts([{
+        ...dataPost.post,
+        authorName: userFullName,
+        authorPicture: userProfilePicture
+      }, ...posts]);
       
       // Clear the form
       setNewPost('');

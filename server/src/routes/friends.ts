@@ -11,39 +11,25 @@ import {
 
 const router = express.Router();
 
-// @route   GET /api/friends/suggestions
-// @desc    Get users for friend suggestions
-// @access  Private
+// get all users that are not friend of the current user by: /api/friends/suggestions
 router.get('/suggestions', getUserSuggestions);
 
-// @route   POST /api/friends
-// @desc    Add a friend
-// @access  Private
+// add new friend by /api/friends
 router.post('/', addFriend);
 
-// @route   DELETE /api/friends/:friendId
-// @desc    Remove a friend
-// @access  Private
+// remove friend by /api/friends/:friendId
 router.delete('/:friendId', removeFriend);
 
-// @route   GET /api/friends/user/:uid
-// @desc    Get user's friends
-// @access  Private
+// get all friends of the current user by /api/friends/user/:uid
 router.get('/user/:uid', getUserFriends);
 
-// @route   POST /api/friends/request
-// @desc    Send a friend request
-// @access  Private
+// send friend request by /api/friends/request
 router.post('/request', sendFriendRequest);
 
-// @route   GET /api/friends/request/status
-// @desc    Check friend request status between two users
-// @access  Private
+// check friend status (friends/ request/ not friends) by /api/friends/request/status
 router.get('/request/status', checkFriendRequestStatus);
 
-// @route   PUT /api/friends/request/handle
-// @desc    Handle friend request (approve/reject)
-// @access  Private
+// handle friend request (approve/reject) by /api/friends/request/handle
 router.put('/request/handle', handleFriendRequest);
 
 export default router; 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../utils/api';
-import api from '../../utils/api';
 import './CreateGroup.css';
 
 const CreateGroup = () => {
@@ -21,10 +20,8 @@ const CreateGroup = () => {
 
   // Check if user is authenticated and get user ID
   useEffect(() => {
-    console.log('CreateGroup useEffect running');
     const token = authService.getToken();
-    console.log('Token exists:', !!token);
-    console.log('Token value:', token);
+
     if (!token) {
       console.log('No token found, redirecting to login');
       navigate('/login');
@@ -52,7 +49,7 @@ const CreateGroup = () => {
 
   const availableTags = [
     'Sports', 'Music', 'Art', 'Technology', 'Food', 'Travel',
-    'Gaming', 'Movies', 'Books', 'Fitness', 'Business', 'Education'
+    'Gaming', 'Movies', 'Books', 'Fitness', 'Business', 'Education' 
   ];
 
   const handleChange = (e) => {
@@ -76,6 +73,7 @@ const CreateGroup = () => {
       }
     });
   };
+
 
   const validateForm = () => {
     let isValid = true;
@@ -102,13 +100,6 @@ const CreateGroup = () => {
     }
 
     try {
-      const token = authService.getToken();
-      
-      if (!token) {
-        console.log('No token found during submission');
-        throw new Error('Authentication required');
-      }
-
       const requestData = {
         ...formData,
         tags: selectedTags,
@@ -116,9 +107,25 @@ const CreateGroup = () => {
         members: [userId] 
       };
 
-      const response = await api.post('/api/groups', requestData);
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/groups`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authService.getToken()}`
+          },
+          body: JSON.stringify(requestData)
+        }
+      );
+    
+      const result = await response.json();
+    
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to create group');
+      }
 
-      navigate('/profile', { state: { activeTab: 'groups' } });
+      navigate('/dashboard', { state: { activeTab: 'groups' } });
+
     } catch (err) {
       console.error('Error in handleSubmit:', err);
       console.error('Error details:', {
@@ -152,9 +159,9 @@ const CreateGroup = () => {
         <h1>Create New Group</h1>
         <button className="btn-back" onClick={() => {
           console.log('Back button clicked');
-          navigate('/profile', { state: { activeTab: 'groups' } });
+          navigate('/dashboard', { state: { activeTab: 'groups' } });
         }}>
-          &larr; Back to Profile
+          &larr; Back to Dashboard
         </button>
       </div>
 
@@ -223,7 +230,6 @@ const CreateGroup = () => {
             Public groups can be found by anyone, while private groups are invite-only.
           </small>
         </div>
-
         <button type="submit" className="btn" disabled={loading}>
           {loading ? 'Creating Group...' : 'Create Group'}
         </button>

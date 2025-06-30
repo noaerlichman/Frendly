@@ -73,7 +73,7 @@ export interface Notification {
   id?: string;
   recipientId: string;
   senderId: string;
-  type: 'friend_request' | 'group_join_request' | 'group_join_approved' | 'group_join_rejected' | 'post_like';
+  type: 'friend_request' | 'group_join_request' | 'group_join' ;
   message: string;
   isRead: boolean;
   createdAt?: any;

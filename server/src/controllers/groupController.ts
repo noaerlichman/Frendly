@@ -2,9 +2,8 @@ import { Request, Response } from 'express';
 import { db } from '../config/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, orderBy, updateDoc, arrayUnion, setDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { Group, ErrorResponse } from '../types/types';
-import { Timestamp } from 'firebase/firestore';
 import cloudinary from '../config/cloudinary';
-import { sendGroupJoinRequestNotification } from './notificationController';
+import { sendGroupJoinRequestNotification, sendGroupRequestHandlerNotification } from './notificationController';
 
 
 // create new group by: POST /api/groups
@@ -540,7 +539,7 @@ export const approveGroupRequest = async (req: Request, res: Response) => {
     });
 
     // Find and delete the join request notification
-    const notificationsRef = collection(db, 'Notifications');
+    const notificationsRef = collection(db, 'Users', userId, 'Notifications');
     const q = query(
       notificationsRef,
       where('type', '==', 'group_join_request'),
@@ -553,22 +552,8 @@ export const approveGroupRequest = async (req: Request, res: Response) => {
     const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(deletePromises);
 
-    // Send notification to the user that their request was approved
-    const userRef = doc(db, 'Users', userId);
-    const userDoc = await getDoc(userRef);
-    const userName = userDoc.data()?.fullName || 'Someone';
-
     // Create notification in user's notifications subcollection
-    const userNotificationsRef = collection(db, 'Users', userId, 'Notifications');
-    await addDoc(userNotificationsRef, {
-      type: "group_join_approved",
-      recipientId: userId,
-      senderId: groupData.adminId,
-      groupId: groupId,
-      message: `Your request to join ${groupData.name} has been approved`,
-      isRead: false,
-      createdAt: serverTimestamp()
-    });
+    sendGroupRequestHandlerNotification(groupId, groupData.name, groupData.adminId, userId, "approved");
 
     res.status(200).json({ message: 'User approved and added to group members' });
   } catch (error) {
@@ -625,19 +610,8 @@ export const rejectGroupRequest = async (req: Request, res: Response) => {
     await Promise.all(deletePromises);
 
     // Send notification to the user that their request was rejected
-    const userRef = doc(db, 'Users', userId);
-    const userDoc = await getDoc(userRef);
-    const userName = userDoc.data()?.fullName || 'Someone';
+    sendGroupRequestHandlerNotification(groupId, groupData.name, groupData.adminId, userId, "rejected");
 
-    await addDoc(collection(db, 'Notifications'), {
-      type: "group_join_rejected",
-      recipientId: userId,
-      senderId: groupData.adminId,
-      groupId: groupId,
-      message: `Your request to join ${groupData.name} has been rejected`,
-      isRead: false,
-      createdAt: Timestamp.fromDate(new Date())
-    });
 
     res.status(200).json({ message: 'User removed from pending requests' });
   } catch (error) {

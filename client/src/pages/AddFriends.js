@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../utils/api';
-import api from '../utils/api';
 
 const AddFriends = () => {
   const [users, setUsers] = useState([]);
@@ -64,10 +63,29 @@ const AddFriends = () => {
       // Fetch request status for each user
       const statuses = {};
       for (const user of data.users || []) {
-        const statusResponse = await api.get(`/api/friends/request/status?senderId=${uid}&receiverId=${user.uid}`);
-        statuses[user.uid] = statusResponse.data.status;
+        try {
+          const response = await fetch(
+            `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/friends/request/status?senderId=${uid}&receiverId=${user.uid}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${authService.getToken()}`
+              }
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch status for user ${user.uid}`);
+          }
+
+          const result = await response.json();
+          statuses[user.uid] = result.status;
+        } catch (err) {
+          console.error(`Error fetching status for user ${user.uid}:`, err);
+          statuses[user.uid] = 'unknown';
+        }
       }
       setRequestStatuses(statuses);
+
     } catch (err) {
       console.error("User suggestions error:", err);
       setError("Failed to load user suggestions. Please try again.");
@@ -79,29 +97,44 @@ const AddFriends = () => {
   const handleSendFriendRequest = async (friendId, friendName) => {
     try {
       setError('');
-      const response = await api.post('/api/friends/request', {
-        senderId: userId,
-        receiverId: friendId
-      });
-
-      if (response.data) {
-        // Update the request status for this user
-        setRequestStatuses(prev => ({
-          ...prev,
-          [friendId]: 'pending'
-        }));
-        
-        setSuccessMessage(`Friend request sent to ${friendName}!`);
-        
-        setTimeout(() => {
-          setSuccessMessage('');
-        }, 3000);
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/friends/request`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authService.getToken()}`
+          },
+          body: JSON.stringify({
+            senderId: userId,
+            receiverId: friendId
+          })
+        }
+      );
+  
+      const result = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to send friend request');
       }
+  
+      // Update the request status for this user
+      setRequestStatuses(prev => ({
+        ...prev,
+        [friendId]: 'pending'
+      }));
+  
+      setSuccessMessage(`Friend request sent to ${friendName}!`);
+  
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
     } catch (err) {
       console.error("Send friend request error:", err);
-      setError(err.response?.data?.message || "Failed to send friend request. Please try again.");
+      setError(err.message || "Failed to send friend request. Please try again.");
     }
   };
+  
 
   const handleBackToProfile = () => {
     navigate('/profile');

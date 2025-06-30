@@ -30,25 +30,14 @@ export const initializeSocket = (socketIo: Server) => {
   });
 };
 
-/**
- * @route GET /api/chat/:userId/:otherUserId
- * @desc Get chat messages between two users
- * @access Private
- */
+
+// get chat messages /api/chat/:userId/:otherUserId
 router.get('/:userId/:otherUserId', getChatMessages);
 
-/**
- * @route POST /api/chat
- * @desc Send a chat message
- * @access Private
- */
+// send new message /api/chat
 router.post('/', sendMessage);
 
-/**
- * @route PUT /api/chat/read
- * @desc Mark messages as read
- * @access Private
- */
+// mark message as read /api/chat/read
 router.put('/read', markMessagesAsRead);
 
 export default router; 

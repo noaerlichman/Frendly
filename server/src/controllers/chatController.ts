@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { ErrorResponse, Chat, ChatMessage } from '../types/types';
 import { getIO } from '../services/socket'; 
+import { sendChatMessageNotification } from './notificationController'
 
 
 // get or create chat between 2 users by: GET /api/chat/:userId/:otherUserId
@@ -148,20 +149,7 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    // Notify receiver
-    const senderRef = doc(db, 'Users', senderId);
-    const senderDoc = await getDoc(senderRef);
-    const senderName = senderDoc.exists() ? senderDoc.data().fullName : 'Someone';
-
-    const notificationsRef = collection(db, 'Users', receiverId, 'Notifications');
-    await addDoc(notificationsRef, {
-      type: 'message',
-      senderId,
-      chatId: currentChatId,
-      message: `${senderName} sent you a message!`,
-      isRead: false,
-      createdAt: serverTimestamp()
-    });
+    sendChatMessageNotification(currentChatId, receiverId, senderId);
 
     // Emit newMessage to other socket clients
     const io = getIO();
